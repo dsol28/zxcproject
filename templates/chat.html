@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <form action="" method="post">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.text.label }}<br>
+            {{ form.text(class="form-control", type="text") }}<br>
+            {% for error in form.text.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
+        <div>{{ message }}</div>
+    </form>
+<div>
+    {% for mes in zxc[::-1] %}
+    <p>
+        <p><a href="/{{mes.sender_id}}">{{mes.sender_name}}</a>:{{mes.text}} <small text-align="right">{{mes.time.strftime("%A %d. %B %Y")}}</small></p>
+    </p>
+    {% endfor %}
+</div>
+
+{% endblock %}
