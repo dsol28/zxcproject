@@ -1,9 +1,10 @@
-from flask import Flask, render_template, redirect
+import flask_login.mixins
+from flask import Flask, render_template, redirect, url_for
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, EmailField, TextAreaField
 import datetime
 from wtforms.validators import DataRequired
-from flask_login import LoginManager, login_user, current_user
+from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from data import db_session
 from data.users import User
 from data.messages import Message
@@ -13,6 +14,11 @@ app.config['SECRET_KEY'] = 'zxczxczxc'
 login_manager = LoginManager()
 login_manager.init_app(app)
 db_session.global_init("db/vseti.db")
+
+
+@app.errorhandler(401)
+def not_found_error(error):
+    return login()
 
 class LoginForm(FlaskForm):
     email = EmailField('Почта', validators=[DataRequired()])
@@ -43,7 +49,7 @@ def load_user(user_id):
 @app.route('/')
 @app.route('/index')
 def index():
-    return "Привет, Яндекс!"
+    return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -85,7 +91,9 @@ def reqister():
         return redirect('/login')
     return render_template('register.html', title='Регистрация', form=form)
 
+
 @app.route('/chat', methods=['GET', 'POST'])
+@login_required
 def chat():
     form = SendMesForm()
     if form.validate_on_submit():
@@ -99,7 +107,27 @@ def chat():
         db_sess.add(message)
         db_sess.commit()
     return render_template('chat.html', title='Чат', form=form,
-                           zxc=db_session.create_session().query(Message))
+                               zxc=db_session.create_session().query(Message))
+@app.route('/<user_input>')
+def zxc(user_input):
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.id == user_input).first()
+    if user:
+        params = {
+            'id': user.id,
+            'surname': user.surname,
+            'name': user.name,
+            'age': user.age,
+            'info': user.info
+        }
+        return render_template('profile.html', **params)
+    else:
+        return 'Пользователь не найден'
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(port=8080, host='127.0.0.1')
