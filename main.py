@@ -1,5 +1,5 @@
 import flask_login.mixins
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, EmailField, TextAreaField
 import datetime
@@ -8,6 +8,9 @@ from flask_login import LoginManager, login_user, current_user, logout_user, log
 from data import db_session
 from data.users import User
 from data.messages import Message
+import requests
+from werkzeug.utils import secure_filename
+import os
 
 
 app = Flask(__name__)
@@ -15,6 +18,15 @@ app.config['SECRET_KEY'] = 'zxczxczxc'
 login_manager = LoginManager()
 login_manager.init_app(app)
 db_session.global_init("db/vseti.db")
+
+
+def get_random_cat_image_url():
+    response = requests.get('https://api.thecatapi.com/v1/images/search')
+    if response.status_code == 200:
+        data = response.json()
+        if data and 'url' in data[0]:
+            return data[0]['url']
+    return None
 
 
 @app.errorhandler(401)
@@ -104,18 +116,25 @@ def reqister():
 def chat():
     form = SendMesForm()
     if form.validate_on_submit():
-        message = Message(
-            sender_name=current_user.name,
-            text=form.text.data,
-            sender_id=current_user.id,
-            time=datetime.datetime.now(),
-        )
+        if 'cat_pic' in request.form:
+            message = Message(
+                sender_name=current_user.name,
+                text=f'<img src="{'https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=beng&api_key=live_oM2p2UHnmhAEUzra09M05xJSiNlkDD5k8MCAhUG9G67frFe7lLqz65wOoLgcvMnJ'}" alt="Cat Picture">',
+                sender_id=current_user.id,
+                time=datetime.datetime.now(),
+            )
+        else:
+            message = Message(
+                sender_name=current_user.name,
+                text=form.text.data,
+                sender_id=current_user.id,
+                time=datetime.datetime.now(),
+            )
         db_sess = db_session.create_session()
         db_sess.add(message)
         db_sess.commit()
         form.text.data = ''
-    return render_template('chat.html', title='Чат', form=form,
-                               zxc=db_session.create_session().query(Message))
+    return render_template('chat.html', title='Чат', form=form, zxc=db_session.create_session().query(Message))
 
 
 @app.route('/<user_input>')
